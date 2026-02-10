@@ -4,6 +4,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Rain animation
+  function createRaindrop() {
+    const rainContainer = document.getElementById("rain-container");
+    const raindrop = document.createElement("div");
+    raindrop.className = "raindrop";
+
+    // Random position
+    const leftPosition = Math.random() * 100;
+    raindrop.style.left = leftPosition + "%";
+
+    // Random animation duration between 0.5s and 1.5s
+    const duration = Math.random() * 1 + 0.5;
+    raindrop.style.animationDuration = duration + "s";
+
+    // Random delay
+    const delay = Math.random() * 0.5;
+    raindrop.style.animationDelay = delay + "s";
+
+    // Random length
+    const height = Math.random() * 30 + 40;
+    raindrop.style.height = height + "px";
+
+    rainContainer.appendChild(raindrop);
+
+    // Remove raindrop after animation
+    setTimeout(() => {
+      raindrop.remove();
+
+      // Optional: create splash effect
+      if (Math.random() > 0.7) {
+        createSplash(leftPosition);
+      }
+    }, (duration + delay) * 1000);
+  }
+
+  function createSplash(leftPosition) {
+    const rainContainer = document.getElementById("rain-container");
+    const splash = document.createElement("div");
+    splash.className = "splash";
+    splash.style.left = leftPosition + "%";
+    splash.style.top = "95%";
+
+    rainContainer.appendChild(splash);
+
+    setTimeout(() => {
+      splash.remove();
+    }, 500);
+  }
+
+  // Create rain continuously
+  function startRain() {
+    setInterval(() => {
+      createRaindrop();
+    }, 50); // Create a raindrop every 50ms
+  }
+
+  // Start the rain effect
+  startRain();
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -25,6 +84,19 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${details.participants.length > 0 ? `
+            <div class="participants-section">
+              <p><strong>Participants:</strong></p>
+              <ul class="participants-list">
+                ${details.participants.map(email => `
+                  <li>
+                    <span class="participant-email">${email}</span>
+                    <button class="delete-btn" data-activity="${name}" data-email="${email}" title="Remove participant">🗑️</button>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : '<p class="no-participants"><em>No participants yet - be the first to sign up!</em></p>'}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -40,6 +112,53 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching activities:", error);
     }
   }
+
+  // Handle delete participant
+  activitiesList.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-btn")) {
+      const activity = event.target.dataset.activity;
+      const email = event.target.dataset.email;
+
+      if (!confirm(`Are you sure you want to unregister ${email} from ${activity}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          messageDiv.textContent = result.message;
+          messageDiv.className = "success";
+          messageDiv.classList.remove("hidden");
+
+          // Refresh activities list (including the dropdown)
+          activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+          fetchActivities();
+
+          // Hide message after 5 seconds
+          setTimeout(() => {
+            messageDiv.classList.add("hidden");
+          }, 5000);
+        } else {
+          messageDiv.textContent = result.detail || "An error occurred";
+          messageDiv.className = "error";
+          messageDiv.classList.remove("hidden");
+        }
+      } catch (error) {
+        messageDiv.textContent = "Failed to unregister. Please try again.";
+        messageDiv.className = "error";
+        messageDiv.classList.remove("hidden");
+        console.error("Error unregistering:", error);
+      }
+    }
+  });
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
@@ -62,6 +181,9 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Refresh activities list to show the new participant
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
