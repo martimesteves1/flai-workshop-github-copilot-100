@@ -4,6 +4,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Rain animation
+  function createRaindrop() {
+    const rainContainer = document.getElementById("rain-container");
+    const raindrop = document.createElement("div");
+    raindrop.className = "raindrop";
+
+    // Random position
+    const leftPosition = Math.random() * 100;
+    raindrop.style.left = leftPosition + "%";
+
+    // Random animation duration between 0.5s and 1.5s
+    const duration = Math.random() * 1 + 0.5;
+    raindrop.style.animationDuration = duration + "s";
+
+    // Random delay
+    const delay = Math.random() * 0.5;
+    raindrop.style.animationDelay = delay + "s";
+
+    // Random length
+    const height = Math.random() * 30 + 40;
+    raindrop.style.height = height + "px";
+
+    rainContainer.appendChild(raindrop);
+
+    // Remove raindrop after animation
+    setTimeout(() => {
+      raindrop.remove();
+
+      // Optional: create splash effect
+      if (Math.random() > 0.7) {
+        createSplash(leftPosition);
+      }
+    }, (duration + delay) * 1000);
+  }
+
+  function createSplash(leftPosition) {
+    const rainContainer = document.getElementById("rain-container");
+    const splash = document.createElement("div");
+    splash.className = "splash";
+    splash.style.left = leftPosition + "%";
+    splash.style.top = "95%";
+
+    rainContainer.appendChild(splash);
+
+    setTimeout(() => {
+      splash.remove();
+    }, 500);
+  }
+
+  // Create rain continuously
+  function startRain() {
+    setInterval(() => {
+      createRaindrop();
+    }, 50); // Create a raindrop every 50ms
+  }
+
+  // Start the rain effect
+  startRain();
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -122,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
-        
+
         // Refresh activities list to show the new participant
         fetchActivities();
       } else {
